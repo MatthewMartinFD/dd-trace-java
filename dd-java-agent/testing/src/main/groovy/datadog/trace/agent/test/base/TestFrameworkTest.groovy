@@ -18,7 +18,7 @@ abstract class TestFrameworkTest extends AgentTestRunner {
     }
   }
 
-  void testSpan(TraceAssert trace, int index, final String testSuite, final String testName, final String testStatus, final Throwable exception = null) {
+  void testSpan(TraceAssert trace, int index, final String testSuite, final String testName, final String testStatus, final Map<String, String> testTags = null, final Throwable exception = null) {
     def testFramework = expectedTestFramework()
 
     trace.span(index) {
@@ -34,9 +34,14 @@ abstract class TestFrameworkTest extends AgentTestRunner {
         "$DDTags.TEST_NAME" testName
         "$DDTags.TEST_FRAMEWORK" testFramework
         "$DDTags.TEST_STATUS" testStatus
+        if (testTags) {
+          testTags.each { key, val -> tag(key, val) }
+        }
+
         if (exception) {
           errorTags(exception.class, exception.message)
         }
+
         defaultTags()
       }
     }
