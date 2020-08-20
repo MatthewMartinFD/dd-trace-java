@@ -31,6 +31,10 @@ public class GlobalIgnoresMatcher<T extends TypeDescription>
     return new GlobalIgnoresMatcher<>(skipAdditionalLibraryMatcher);
   }
 
+  private static boolean endEquals(String name, String end, int offset) {
+    return name.length() - offset == end.length() && name.endsWith(end);
+  }
+
   private final ElementMatcher<T> additionalLibraryIgnoreMatcher =
       AdditionalLibraryIgnoresMatcher.additionalLibraryIgnoresMatcher();
   private final boolean skipAdditionalLibraryMatcher;
@@ -143,19 +147,39 @@ public class GlobalIgnoresMatcher<T extends TypeDescription>
         break;
       case 'o' - 'a':
         if (name.startsWith("org.")) {
-          if (name.startsWith("org.aspectj.") || name.startsWith("org.jinspired.")) {
+          int oOffset = "org.".length();
+          if (name.startsWith("aspectj.", oOffset) || name.startsWith("jinspired.", oOffset)) {
             return true;
           }
           // groovy
-          if (name.startsWith("org.groovy.") || name.startsWith("org.apache.groovy.")) {
+          if (name.startsWith("groovy.", oOffset) || name.startsWith("apache.groovy.", oOffset)) {
             return true;
           }
-          if (name.startsWith("org.codehaus.groovy.")) {
+          if (name.startsWith("codehaus.groovy.", oOffset)) {
+            int cgOffset = oOffset + "codehaus.groovy.".length();
             // We seem to instrument some classes in runtime
-            return !name.startsWith("org.codehaus.groovy.runtime.");
+            return !name.startsWith("runtime.", cgOffset);
           }
-          if (name.startsWith("org.apache.log4j.")) {
-            return !name.equals("org.apache.log4j.MDC");
+          if (name.startsWith("apache.log4j.", oOffset)) {
+            int alOffset = oOffset + "apache.log4j.".length();
+            return !endEquals(name, "MDC", alOffset);
+          }
+          if (name.startsWith("springframework.", oOffset)) {
+            int sfOffset = oOffset + "springframework.".length();
+            if (name.startsWith("context.", sfOffset)) {
+              int cOffset = sfOffset + "context.".length();
+              return endEquals(name, "support.ContextTypeMatchClassLoader", cOffset);
+            }
+            if (name.startsWith("core.", sfOffset)) {
+              int cOffset = sfOffset + "core.".length();
+              return endEquals(name, "OverridingClassLoader", cOffset)
+                  || endEquals(name, "DecoratingClassLoader", cOffset);
+            }
+            if (name.startsWith("instrument.", sfOffset)) {
+              int iOffset = sfOffset + "instrument.".length();
+              return endEquals(name, "classloading.SimpleThrowawayClassLoader", iOffset)
+                  || endEquals(name, "classloading.ShadowingClassLoader", iOffset);
+            }
           }
         }
         break;
